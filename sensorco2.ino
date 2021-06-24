@@ -1,8 +1,9 @@
 #include <SPI.h>
 #include <Wire.h>
-#include <GyverOLED.h>
 #include <SoftwareSerial.h>
-#include <MHZ19.h>
+
+#include <GyverOLED.h>
+#include <MHZ19.h> // by Jonathan Dempsey
 #include <Adafruit_BMP280.h>
 
 
