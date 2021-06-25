@@ -15,7 +15,9 @@ GyverOLED<SSH1106_128x64, OLED_NO_BUFFER> oled;
 
 // Кнопка сенсорная
 #define PIN_BUTTON 6
-
+unsigned long buttonCounter = 0;
+bool buttonShort = false;
+bool buttonLong = false;
 
 // Датчики BMP280 или BME280: температура, давление, влажность(только BME280)
 #define SEALEVELPRESSURE_HPA (1013.25)  // Давление на уровне моря, для вычесления высоты
@@ -44,6 +46,7 @@ unsigned long getDataTimer = 0;
 #define MODE_ALL 1      // all, type
 #define MODE_WELCOME 2  // welcome
 int mode = 0; 
+
 
 // Зуммер
 #define NOTE_B0  31
@@ -136,6 +139,26 @@ int mode = 0;
 #define NOTE_D8  4699
 #define NOTE_DS8 4978
 
+#define c 261
+#define d 294
+#define e 329
+#define f 349
+#define g 391
+#define gS 415
+#define a 440
+#define aS 455
+#define b 466
+#define cH 523
+#define cSH 554
+#define dH 587
+#define dSH 622
+#define eH 659
+#define fH 698
+#define fSH 740
+#define gH 784
+#define gSH 830
+#define aH 880
+
 #define PIN_BEEPER 10
 int melody[] = {NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4};
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
@@ -203,7 +226,7 @@ void setup() {
 void loop() 
 {
 
-  eventButton(digitalRead(PIN_BUTTON));
+  onButton(digitalRead(PIN_BUTTON));
 
   if (millis() - getDataTimer >= 5000)
   {
@@ -214,6 +237,61 @@ void loop()
     displayMode();
   }  
 }
+
+void onButton(int status)
+{
+  if(status==HIGH){
+    if (buttonShort==false && millis()-buttonCounter>100) {
+      buttonShort = true;
+      buttonCounter = millis();
+    }
+    if (buttonShort==true && millis()-buttonCounter>1000) {
+      buttonLong = !buttonLong;
+      buttonCounter = millis();
+
+      eventButtonLong();
+    }
+  }else{
+    if (buttonShort==true && buttonLong==true) {
+      buttonShort = false;            
+      buttonLong = false;  
+    }
+    if (buttonShort==true && buttonLong==false) {
+      buttonShort = false;  
+      
+      eventButtonShort();
+    }
+  }
+}
+
+// Событие короткого нажтия кнопки
+void eventButtonShort()
+{
+  digitalWrite(LED_BUILTIN, HIGH);
+  mode++;
+  if(mode>2){
+    mode=0;
+  }
+  
+  tone(PIN_BEEPER, 5000, 100);
+  displayMode();
+      
+  Serial.print("TOUCH mode: ");
+  Serial.println(mode);
+
+  digitalWrite(LED_BUILTIN, LOW);
+}
+
+// Событие длиного нажтия кнопки
+void eventButtonLong()
+{
+  if(mode==MODE_WELCOME){
+    // march();
+    // playMelody();
+  }
+  tone(PIN_BEEPER, 2000, 1000);  
+}
+
 
 void playMelody()
 {
@@ -337,31 +415,6 @@ void displayButton()
   oled.update();
 }
 
-void eventButton(int status)
-{
-    
-  if(status==HIGH){
-    mode++;
-    if(mode>2){
-      mode=0;
-    }
-    tone(PIN_BEEPER, 5000, 100);
-    displayMode();
-        
-    digitalWrite(LED_BUILTIN, HIGH);
-    
-    Serial.print("TOUCH mode: ");
-    Serial.println(mode);
-    if(mode==MODE_WELCOME){
-      playMelody();
-    }
-    //delay(1000);
-    
-  }else{
-    digitalWrite(LED_BUILTIN, LOW);
-  }
-}
-
 
 void getCO2()
 {
@@ -440,4 +493,123 @@ void scannerI2C()
         Serial.println(F("No I2C devices found\n"));
     else
         Serial.println(F("done\n"));  
+}
+
+void beep (unsigned char speakerPin, int frequencyInHertz, long timeInMilliseconds)
+{ 
+    digitalWrite(LED_BUILTIN, HIGH);   
+    //use led to visualize the notes being played
+    
+    int x;   
+    long delayAmount = (long)(1000000/frequencyInHertz);
+    long loopTime = (long)((timeInMilliseconds*1000)/(delayAmount*2));
+    for (x=0;x<loopTime;x++)   
+    {    
+        digitalWrite(speakerPin,HIGH);
+        delayMicroseconds(delayAmount);
+        digitalWrite(speakerPin,LOW);
+        delayMicroseconds(delayAmount);
+    }    
+    
+    digitalWrite(LED_BUILTIN, LOW);
+    //set led back to low
+    
+    delay(20);
+    //a little delay to make all notes sound separate
+} 
+
+void march()
+{    
+    //for the sheet music see:
+    //http://www.musicnotes.com/sheetmusic/mtd.asp?ppn=MN0016254
+    //this is just a translation of said sheet music to frequencies / time in ms
+    //used 500 ms for a quart note
+    
+    beep(PIN_BEEPER, a, 500); 
+    beep(PIN_BEEPER, a, 500);     
+    beep(PIN_BEEPER, a, 500); 
+    beep(PIN_BEEPER, f, 350); 
+    beep(PIN_BEEPER, cH, 150);
+    
+    beep(PIN_BEEPER, a, 500);
+    beep(PIN_BEEPER, f, 350);
+    beep(PIN_BEEPER, cH, 150);
+    beep(PIN_BEEPER, a, 1000);
+    //first bit
+    
+    beep(PIN_BEEPER, eH, 500);
+    beep(PIN_BEEPER, eH, 500);
+    beep(PIN_BEEPER, eH, 500);    
+    beep(PIN_BEEPER, fH, 350); 
+    beep(PIN_BEEPER, cH, 150);
+    
+    beep(PIN_BEEPER, gS, 500);
+    beep(PIN_BEEPER, f, 350);
+    beep(PIN_BEEPER, cH, 150);
+    beep(PIN_BEEPER, a, 1000);
+    //second bit...
+    
+    beep(PIN_BEEPER, aH, 500);
+    beep(PIN_BEEPER, a, 350); 
+    beep(PIN_BEEPER, a, 150);
+    beep(PIN_BEEPER, aH, 500);
+    beep(PIN_BEEPER, gSH, 250); 
+    beep(PIN_BEEPER, gH, 250);
+    
+    beep(PIN_BEEPER, fSH, 125);
+    beep(PIN_BEEPER, fH, 125);    
+    beep(PIN_BEEPER, fSH, 250);
+    delay(250);
+    beep(PIN_BEEPER, aS, 250);    
+    beep(PIN_BEEPER, dSH, 500);  
+    beep(PIN_BEEPER, dH, 250);  
+    beep(PIN_BEEPER, cSH, 250);  
+    //start of the interesting bit
+    
+    beep(PIN_BEEPER, cH, 125);  
+    beep(PIN_BEEPER, b, 125);  
+    beep(PIN_BEEPER, cH, 250);      
+    delay(250);
+    beep(PIN_BEEPER, f, 125);  
+    beep(PIN_BEEPER, gS, 500);  
+    beep(PIN_BEEPER, f, 375);  
+    beep(PIN_BEEPER, a, 125); 
+    
+    beep(PIN_BEEPER, cH, 500); 
+    beep(PIN_BEEPER, a, 375);  
+    beep(PIN_BEEPER, cH, 125); 
+    beep(PIN_BEEPER, eH, 1000); 
+    //more interesting stuff (this doesn't quite get it right somehow)
+    
+    beep(PIN_BEEPER, aH, 500);
+    beep(PIN_BEEPER, a, 350); 
+    beep(PIN_BEEPER, a, 150);
+    beep(PIN_BEEPER, aH, 500);
+    beep(PIN_BEEPER, gSH, 250); 
+    beep(PIN_BEEPER, gH, 250);
+    
+    beep(PIN_BEEPER, fSH, 125);
+    beep(PIN_BEEPER, fH, 125);    
+    beep(PIN_BEEPER, fSH, 250);
+    delay(250);
+    beep(PIN_BEEPER, aS, 250);    
+    beep(PIN_BEEPER, dSH, 500);  
+    beep(PIN_BEEPER, dH, 250);  
+    beep(PIN_BEEPER, cSH, 250);  
+    //repeat... repeat
+    
+    beep(PIN_BEEPER, cH, 125);  
+    beep(PIN_BEEPER, b, 125);  
+    beep(PIN_BEEPER, cH, 250);      
+    delay(250);
+    beep(PIN_BEEPER, f, 250);  
+    beep(PIN_BEEPER, gS, 500);  
+    beep(PIN_BEEPER, f, 375);  
+    beep(PIN_BEEPER, cH, 125); 
+           
+    beep(PIN_BEEPER, a, 500);            
+    beep(PIN_BEEPER, f, 375);            
+    beep(PIN_BEEPER, c, 125);            
+    beep(PIN_BEEPER, a, 1000);       
+    //and we're done \ó/    
 }
