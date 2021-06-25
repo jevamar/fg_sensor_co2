@@ -148,7 +148,7 @@ void loop()
         delay(500);
         noTone(PIN_BEEPER);
 
-      }else if(co2ppm>2000){
+      }else if(co2ppm>2000 && co2ppm<4999){
         tone(PIN_BEEPER, 3000);  
         delay(800);
         noTone(PIN_BEEPER);
