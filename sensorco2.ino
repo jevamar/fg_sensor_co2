@@ -162,6 +162,8 @@ void loop()
         tone(PIN_BEEPER, 3000);  
         delay(800);
         noTone(PIN_BEEPER); 
+      }else if(co2ppm>=4999){
+        march();
       }
     }
   }  
