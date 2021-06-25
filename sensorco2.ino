@@ -7,6 +7,7 @@
 #include <Adafruit_BMP280.h>
 #include <Adafruit_BME280.h>
 
+#include "beeper_notes.h"
 
 // Дисплей OLED SH1106
 #define OLED_RESET 4
@@ -49,121 +50,14 @@ int mode = 0;
 
 
 // Зуммер
-#define NOTE_B0  31
-#define NOTE_C1  33
-#define NOTE_CS1 35
-#define NOTE_D1  37
-#define NOTE_DS1 39
-#define NOTE_E1  41
-#define NOTE_F1  44
-#define NOTE_FS1 46
-#define NOTE_G1  49
-#define NOTE_GS1 52
-#define NOTE_A1  55
-#define NOTE_AS1 58
-#define NOTE_B1  62
-#define NOTE_C2  65
-#define NOTE_CS2 69
-#define NOTE_D2  73
-#define NOTE_DS2 78
-#define NOTE_E2  82
-#define NOTE_F2  87
-#define NOTE_FS2 93
-#define NOTE_G2  98
-#define NOTE_GS2 104
-#define NOTE_A2  110
-#define NOTE_AS2 117
-#define NOTE_B2  123
-#define NOTE_C3  131
-#define NOTE_CS3 139
-#define NOTE_D3  147
-#define NOTE_DS3 156
-#define NOTE_E3  165
-#define NOTE_F3  175
-#define NOTE_FS3 185
-#define NOTE_G3  196
-#define NOTE_GS3 208
-#define NOTE_A3  220
-#define NOTE_AS3 233
-#define NOTE_B3  247
-#define NOTE_C4  262
-#define NOTE_CS4 277
-#define NOTE_D4  294
-#define NOTE_DS4 311
-#define NOTE_E4  330
-#define NOTE_F4  349
-#define NOTE_FS4 370
-#define NOTE_G4  392
-#define NOTE_GS4 415
-#define NOTE_A4  440
-#define NOTE_AS4 466
-#define NOTE_B4  494
-#define NOTE_C5  523
-#define NOTE_CS5 554
-#define NOTE_D5  587
-#define NOTE_DS5 622
-#define NOTE_E5  659
-#define NOTE_F5  698
-#define NOTE_FS5 740
-#define NOTE_G5  784
-#define NOTE_GS5 831
-#define NOTE_A5  880
-#define NOTE_AS5 932
-#define NOTE_B5  988
-#define NOTE_C6  1047
-#define NOTE_CS6 1109
-#define NOTE_D6  1175
-#define NOTE_DS6 1245
-#define NOTE_E6  1319
-#define NOTE_F6  1397
-#define NOTE_FS6 1480
-#define NOTE_G6  1568
-#define NOTE_GS6 1661
-#define NOTE_A6  1760
-#define NOTE_AS6 1865
-#define NOTE_B6  1976
-#define NOTE_C7  2093
-#define NOTE_CS7 2217
-#define NOTE_D7  2349
-#define NOTE_DS7 2489
-#define NOTE_E7  2637
-#define NOTE_F7  2794
-#define NOTE_FS7 2960
-#define NOTE_G7  3136
-#define NOTE_GS7 3322
-#define NOTE_A7  3520
-#define NOTE_AS7 3729
-#define NOTE_B7  3951
-#define NOTE_C8  4186
-#define NOTE_CS8 4435
-#define NOTE_D8  4699
-#define NOTE_DS8 4978
-
-#define c 261
-#define d 294
-#define e 329
-#define f 349
-#define g 391
-#define gS 415
-#define a 440
-#define aS 455
-#define b 466
-#define cH 523
-#define cSH 554
-#define dH 587
-#define dSH 622
-#define eH 659
-#define fH 698
-#define fSH 740
-#define gH 784
-#define gSH 830
-#define aH 880
-
 #define PIN_BEEPER 10
 int melody[] = {NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4};
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
 int noteDurations[] = {4, 8, 8, 4, 4, 4, 4, 4};
+bool isSound = true;
 
+#include "display.h"
+#include "beeper.h"
 
 void setup() {
   // LED
@@ -235,6 +129,41 @@ void loop()
     getCO2();
   
     displayMode();
+
+    if(isSound){
+      if(co2ppm>1000 && co2ppm<1500){
+        tone(PIN_BEEPER, 2000, 500);  
+      }else if(co2ppm>1500 && co2ppm<2000){
+        tone(PIN_BEEPER, 2500);  
+        delay(500);
+        noTone(PIN_BEEPER);
+        delay(200);
+
+        tone(PIN_BEEPER, 2500);  
+        delay(500);
+        noTone(PIN_BEEPER);
+        delay(200);
+
+        tone(PIN_BEEPER, 2500);  
+        delay(500);
+        noTone(PIN_BEEPER);
+
+      }else if(co2ppm>2000){
+        tone(PIN_BEEPER, 3000);  
+        delay(800);
+        noTone(PIN_BEEPER);
+        delay(200);
+
+        tone(PIN_BEEPER, 3000);  
+        delay(800);
+        noTone(PIN_BEEPER);
+        delay(200);
+
+        tone(PIN_BEEPER, 3000);  
+        delay(800);
+        noTone(PIN_BEEPER); 
+      }
+    }
   }  
 }
 
@@ -272,8 +201,9 @@ void eventButtonShort()
   if(mode>2){
     mode=0;
   }
-  
-  tone(PIN_BEEPER, 5000, 100);
+  if(isSound){
+    tone(PIN_BEEPER, 5000, 100);
+  }
   displayMode();
       
   Serial.print("TOUCH mode: ");
@@ -290,129 +220,7 @@ void eventButtonLong()
     // playMelody();
   }
   tone(PIN_BEEPER, 2000, 1000);  
-}
-
-
-void playMelody()
-{
-  for (int thisNote = 0; thisNote < 8; thisNote++) {
-    int noteDuration = 1000 / noteDurations[thisNote];
-    tone(PIN_BEEPER, melody[thisNote], noteDuration);
-    int pauseBetweenNotes = noteDuration * 1.30;
-    delay(pauseBetweenNotes);
-    noTone(PIN_BEEPER);
-  }
-}
-
-void displayMode()
-{
-  if(mode==MODE_MAIN){
-    display();
-  }
-  if(mode==MODE_ALL){
-    displayAll();
-  }
-  if(mode==MODE_WELCOME){
-    displayButton();
-  }
-}
-
-void display()
-{
-   
-  oled.clear();   
-
-  oled.home();
-  //oled.setCursorXY(5, 30);
-
-  oled.setScale(2);
-  oled.print(F("CO"));
-  oled.setScale(1);
-  oled.print(F("2"));
-  oled.setScale(2);
-  oled.print(F(" "));
-  oled.print(co2ppm);
-  oled.setScale(1);
-  oled.print(F(" ppm"));
-
-  oled.setScale(2);
-  oled.print(F("\r\n"));
-  oled.setScale(1);
-  oled.print(F("\r\n"));
-  oled.print(F("temp "));
-  oled.setScale(2);
-  oled.print(temp);
-  oled.print(F(" C"));
-
-  oled.setScale(2);
-  oled.print(F("\r\n"));
-  oled.setScale(1);
-  oled.print(F("\r\n"));
-  oled.print(F("P "));
-  oled.setScale(2);
-  oled.print(pressure);
-  oled.setScale(1);
-  oled.print(F(" hPa"));
-    
-  oled.update();
-}
-
-void displayAll()
-{
-   
-  oled.clear();   
-
-  oled.home();
-  oled.setScale(1);
-
-  oled.print(F("co2 "));
-  oled.print(co2ppm);
-  oled.print(F(" ppm"));
-  oled.print(F("\r\n"));
-
-  oled.print(F("\r\n"));
-  if(isBMP280){
-    oled.print(F("BMP280\r\n"));  
-  }
-  if(isBME280){
-    oled.print(F("BME280\r\n"));  
-  }
-  oled.print(F("\r\n"));
-  
-  oled.print(F("temp "));
-  oled.print(temp);
-  oled.print(F(" C"));
-  oled.print(F("\r\n"));
-
-  oled.print(F("P "));
-  oled.print(pressure);
-  oled.print(F(" hPa"));
-  oled.print(F("\r\n"));
-
-  if(isBME280){
-    oled.print(F("Humidity "));
-    oled.print(humidity);
-    oled.print(F(" %"));
-  }  
-  oled.update();
-}
-
-void displayButton()
-{
-   
-  oled.clear();   
-
-  oled.home();
-  //oled.setCursorXY(5, 30);
-  oled.setScale(1);
-  oled.autoPrintln(true);
-  oled.print(F("Hello, Okarin!\r\n"));
-  oled.setScale(1);
-  oled.print(F("\r\n       Go to\r\n\r\n"));
-  oled.setScale(2);
-  oled.print(F("Steins;\r\nGate"));
-    
-  oled.update();
+  isSound=!isSound;
 }
 
 
@@ -493,123 +301,4 @@ void scannerI2C()
         Serial.println(F("No I2C devices found\n"));
     else
         Serial.println(F("done\n"));  
-}
-
-void beep (unsigned char speakerPin, int frequencyInHertz, long timeInMilliseconds)
-{ 
-    digitalWrite(LED_BUILTIN, HIGH);   
-    //use led to visualize the notes being played
-    
-    int x;   
-    long delayAmount = (long)(1000000/frequencyInHertz);
-    long loopTime = (long)((timeInMilliseconds*1000)/(delayAmount*2));
-    for (x=0;x<loopTime;x++)   
-    {    
-        digitalWrite(speakerPin,HIGH);
-        delayMicroseconds(delayAmount);
-        digitalWrite(speakerPin,LOW);
-        delayMicroseconds(delayAmount);
-    }    
-    
-    digitalWrite(LED_BUILTIN, LOW);
-    //set led back to low
-    
-    delay(20);
-    //a little delay to make all notes sound separate
-} 
-
-void march()
-{    
-    //for the sheet music see:
-    //http://www.musicnotes.com/sheetmusic/mtd.asp?ppn=MN0016254
-    //this is just a translation of said sheet music to frequencies / time in ms
-    //used 500 ms for a quart note
-    
-    beep(PIN_BEEPER, a, 500); 
-    beep(PIN_BEEPER, a, 500);     
-    beep(PIN_BEEPER, a, 500); 
-    beep(PIN_BEEPER, f, 350); 
-    beep(PIN_BEEPER, cH, 150);
-    
-    beep(PIN_BEEPER, a, 500);
-    beep(PIN_BEEPER, f, 350);
-    beep(PIN_BEEPER, cH, 150);
-    beep(PIN_BEEPER, a, 1000);
-    //first bit
-    
-    beep(PIN_BEEPER, eH, 500);
-    beep(PIN_BEEPER, eH, 500);
-    beep(PIN_BEEPER, eH, 500);    
-    beep(PIN_BEEPER, fH, 350); 
-    beep(PIN_BEEPER, cH, 150);
-    
-    beep(PIN_BEEPER, gS, 500);
-    beep(PIN_BEEPER, f, 350);
-    beep(PIN_BEEPER, cH, 150);
-    beep(PIN_BEEPER, a, 1000);
-    //second bit...
-    
-    beep(PIN_BEEPER, aH, 500);
-    beep(PIN_BEEPER, a, 350); 
-    beep(PIN_BEEPER, a, 150);
-    beep(PIN_BEEPER, aH, 500);
-    beep(PIN_BEEPER, gSH, 250); 
-    beep(PIN_BEEPER, gH, 250);
-    
-    beep(PIN_BEEPER, fSH, 125);
-    beep(PIN_BEEPER, fH, 125);    
-    beep(PIN_BEEPER, fSH, 250);
-    delay(250);
-    beep(PIN_BEEPER, aS, 250);    
-    beep(PIN_BEEPER, dSH, 500);  
-    beep(PIN_BEEPER, dH, 250);  
-    beep(PIN_BEEPER, cSH, 250);  
-    //start of the interesting bit
-    
-    beep(PIN_BEEPER, cH, 125);  
-    beep(PIN_BEEPER, b, 125);  
-    beep(PIN_BEEPER, cH, 250);      
-    delay(250);
-    beep(PIN_BEEPER, f, 125);  
-    beep(PIN_BEEPER, gS, 500);  
-    beep(PIN_BEEPER, f, 375);  
-    beep(PIN_BEEPER, a, 125); 
-    
-    beep(PIN_BEEPER, cH, 500); 
-    beep(PIN_BEEPER, a, 375);  
-    beep(PIN_BEEPER, cH, 125); 
-    beep(PIN_BEEPER, eH, 1000); 
-    //more interesting stuff (this doesn't quite get it right somehow)
-    
-    beep(PIN_BEEPER, aH, 500);
-    beep(PIN_BEEPER, a, 350); 
-    beep(PIN_BEEPER, a, 150);
-    beep(PIN_BEEPER, aH, 500);
-    beep(PIN_BEEPER, gSH, 250); 
-    beep(PIN_BEEPER, gH, 250);
-    
-    beep(PIN_BEEPER, fSH, 125);
-    beep(PIN_BEEPER, fH, 125);    
-    beep(PIN_BEEPER, fSH, 250);
-    delay(250);
-    beep(PIN_BEEPER, aS, 250);    
-    beep(PIN_BEEPER, dSH, 500);  
-    beep(PIN_BEEPER, dH, 250);  
-    beep(PIN_BEEPER, cSH, 250);  
-    //repeat... repeat
-    
-    beep(PIN_BEEPER, cH, 125);  
-    beep(PIN_BEEPER, b, 125);  
-    beep(PIN_BEEPER, cH, 250);      
-    delay(250);
-    beep(PIN_BEEPER, f, 250);  
-    beep(PIN_BEEPER, gS, 500);  
-    beep(PIN_BEEPER, f, 375);  
-    beep(PIN_BEEPER, cH, 125); 
-           
-    beep(PIN_BEEPER, a, 500);            
-    beep(PIN_BEEPER, f, 375);            
-    beep(PIN_BEEPER, c, 125);            
-    beep(PIN_BEEPER, a, 1000);       
-    //and we're done \ó/    
 }
