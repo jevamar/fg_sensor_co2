@@ -225,7 +225,9 @@ void eventButtonLong()
   isSound=!isSound;
 }
 
-
+/**
+* Получение показние концетрации CO2 и температуры с датчика MH-Z19
+*/
 void getCO2()
 {
   co2ppm = myMHZ19.getCO2(); 
@@ -271,6 +273,9 @@ void getTemperatureSensor()
 
 }
 
+/**
+* Сканирование устройств на порте I2C
+*/
 void scannerI2C()
 {
     byte error, address;
