@@ -12,7 +12,8 @@
 // Дисплей OLED SH1106
 #define OLED_RESET 4
 GyverOLED<SSH1106_128x64, OLED_NO_BUFFER> oled;
-
+// SDA - A4 Arduino
+// SCL - A5 Arduino
 
 // Кнопка сенсорная
 #define PIN_BUTTON 6
@@ -31,6 +32,7 @@ float temp = 0;
 float pressure = 0;
 float humidity = 0;
 
+float tempCorrection = -0.45; // Коррекция температуры
 
 // Датчик СО2 MH-Z19b
 #define RX_PIN 3                                          
@@ -45,16 +47,16 @@ unsigned long getDataTimer = 0;
 
 #define MODE_MAIN 0     // co2, temp, press
 #define MODE_ALL 1      // all, type
-#define MODE_WELCOME 2  // welcome
+// #define MODE_WELCOME 2  // welcome
 int mode = 0; 
 
 
 // Зуммер
-#define PIN_BEEPER 10
+#define PIN_BEEPER 10 // D10 Arduino
 int melody[] = {NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4};
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
 int noteDurations[] = {4, 8, 8, 4, 4, 4, 4, 4};
-bool isSound = true;
+bool isSound = false; // По-умолчанию звук предупреждения отключен
 
 #include "display.h"
 #include "beeper.h"
@@ -71,7 +73,7 @@ void setup() {
   Serial.begin(9600);
   Serial.println(F("Start Big Brother..."));
 
-//  scannerI2C();
+  // scannerI2C();
 
   // OLED
   Serial.println(F("TEST - OLED SH1106 128x64"));
@@ -200,7 +202,7 @@ void eventButtonShort()
 {
   digitalWrite(LED_BUILTIN, HIGH);
   mode++;
-  if(mode>2){
+  if(mode>1){
     mode=0;
   }
   if(isSound){
@@ -217,12 +219,18 @@ void eventButtonShort()
 // Событие длиного нажтия кнопки
 void eventButtonLong()
 {
-  if(mode==MODE_WELCOME){
-    // march();
-    // playMelody();
-  }
+  // if(mode==MODE_WELCOME){
+  //   // march();
+  //   // playMelody();
+  // }
   tone(PIN_BEEPER, 2000, 1000);  
   isSound=!isSound;
+  if(isSound) {
+    Serial.println(F("Sound ON"));
+  } else {
+    Serial.println(F("Sound OFF"));
+  }
+
 }
 
 /**
@@ -235,8 +243,11 @@ void getCO2()
   Serial.print(co2ppm);
   Serial.println(F(" ppm"));
   
-  //        int8_t Temp = myMHZ19.getTemperature();
-  //        Serial.println("MH-Z19 Temp: " + String(Temp)+ " °C");        
+  // Если датчики BMP/E280 не подключены, то брать температуру с датчика CO2
+  if(!isBMP280 && !isBME280) {
+    temp = myMHZ19.getTemperature();
+    Serial.println("MH-Z19 Temp: " + String(temp));        
+  }
   
   Serial.println();  
   
@@ -247,9 +258,9 @@ void getCO2()
 void getTemperatureSensor()
 {
     if(isBMP280){
-      temp = bmp.readTemperature();
+      temp = bmp.readTemperature() + tempCorrection;
     }else if(isBME280){
-      temp = bme.readTemperature();
+      temp = bme.readTemperature() + tempCorrection;
     }
     Serial.print(F("Temp: "));
     Serial.print(temp);

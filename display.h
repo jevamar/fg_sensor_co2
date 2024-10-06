@@ -1,6 +1,7 @@
 #ifndef display_h
 #define display_h
 
+// Главный Экран
 void display()
 {
    
@@ -9,6 +10,7 @@ void display()
   oled.home();
   //oled.setCursorXY(5, 30);
 
+  // Строка CO2 
   oled.setScale(2);
   oled.print(F("CO"));
   oled.setScale(1);
@@ -18,29 +20,48 @@ void display()
   oled.print(co2ppm);
   oled.setScale(1);
   oled.print(F(" ppm"));
-
   oled.setScale(2);
   oled.print(F("\r\n"));
+
+  // Пустая строка 
   oled.setScale(1);
   oled.print(F("\r\n"));
+
+  // Строка температуры
   oled.print(F("temp "));
   oled.setScale(2);
   oled.print(temp);
-  oled.print(F(" C"));
+  oled.setScale(1);
+  oled.print(F(" o"));
+  oled.setScale(2);
+  oled.print(F("C"));
+  oled.setScale(2);
+  oled.print(F("\r\n"));
 
-  oled.setScale(2);
-  oled.print(F("\r\n"));
+  // Пустая строка 
   oled.setScale(1);
   oled.print(F("\r\n"));
-  oled.print(F("P "));
-  oled.setScale(2);
-  oled.print(pressure);
-  oled.setScale(1);
-  oled.print(F(" hPa"));
-    
+
+  if(isBME280){
+    // Строка Влажности
+    oled.setScale(1);
+    oled.print(F("     "));
+    oled.setScale(2);
+    oled.print(round(humidity));
+    oled.print(F(" %"));
+  } else {
+    // Строка давления
+    oled.print(F("P "));
+    oled.setScale(2);
+    oled.print(pressure);
+    oled.setScale(1);
+    oled.print(F(" hPa"));
+  }
+
   oled.update();
 }
 
+// Экран со всеми параметрами
 void displayAll()
 {
    
@@ -63,20 +84,20 @@ void displayAll()
   }
   oled.print(F("\r\n"));
   
-  oled.print(F("temp "));
+  oled.print(F("T: "));
   oled.print(temp);
   oled.print(F(" C"));
   oled.print(F("\r\n"));
 
-  oled.print(F("P "));
+  oled.print(F("P: "));
   oled.print(pressure);
   oled.print(F(" hPa"));
   oled.print(F("\r\n"));
 
   if(isBME280){
-    oled.print(F("Humidity "));
+    oled.print(F("H: "));
     oled.print(humidity);
-    oled.print(F(" %"));
+    oled.println(F(" %"));
   }  
 
   if(isSound){
@@ -88,23 +109,24 @@ void displayAll()
   oled.update();
 }
 
-void displayButton()
-{
+// Экранс произвольным текстом
+// void displayButton()
+// {
    
-  oled.clear();   
+//   oled.clear();   
 
-  oled.home();
-  //oled.setCursorXY(5, 30);
-  oled.setScale(1);
-  oled.autoPrintln(true);
-  oled.print(F("Hello, Okarin!\r\n"));
-  oled.setScale(1);
-  oled.print(F("\r\n       Go to\r\n\r\n"));
-  oled.setScale(2);
-  oled.print(F("Steins;\r\nGate"));
+//   oled.home();
+//   //oled.setCursorXY(5, 30);
+//   oled.setScale(1);
+//   oled.autoPrintln(true);
+//   oled.print(F("Hello, Okarin!\r\n"));
+//   oled.setScale(1);
+//   oled.print(F("\r\n       Go to\r\n\r\n"));
+//   oled.setScale(2);
+//   oled.print(F("Steins;\r\nGate"));
     
-  oled.update();
-}
+//   oled.update();
+// }
 
 void displayMode()
 {
@@ -114,9 +136,9 @@ void displayMode()
   if(mode==MODE_ALL){
     displayAll();
   }
-  if(mode==MODE_WELCOME){
-    displayButton();
-  }
+  // if(mode==MODE_WELCOME){
+  //   displayButton();
+  // }
 }
 
 #endif

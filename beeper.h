@@ -13,7 +13,6 @@ void playMelody()
 void beep (unsigned char speakerPin, int frequencyInHertz, long timeInMilliseconds)
 { 
     digitalWrite(LED_BUILTIN, HIGH);   
-    //use led to visualize the notes being played
     
     int x;   
     long delayAmount = (long)(1000000/frequencyInHertz);
@@ -27,12 +26,11 @@ void beep (unsigned char speakerPin, int frequencyInHertz, long timeInMillisecon
     }    
     
     digitalWrite(LED_BUILTIN, LOW);
-    //set led back to low
     
-    delay(20);
-    //a little delay to make all notes sound separate
+    delay(20); // пауза между нотами
 } 
 
+// Воспроизведение имперского марша
 void march()
 {    
     //for the sheet music see:
