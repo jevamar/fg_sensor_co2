@@ -44,19 +44,20 @@ int co2ppm = 0;
 
 // Счетчик времени для снятия показаний
 unsigned long getDataTimer = 0;
+unsigned long timerCalibration = 0;
 
 #define MODE_MAIN 0     // co2, temp, press
 #define MODE_ALL 1      // all, type
-// #define MODE_WELCOME 2  // welcome
+#define MODE_CALIBRATE 2  // Calibration screen
 int mode = 0; 
-
 
 // Зуммер
 #define PIN_BEEPER 10 // D10 Arduino
 int melody[] = {NOTE_C4, NOTE_G3, NOTE_G3, NOTE_A3, NOTE_G3, 0, NOTE_B3, NOTE_C4};
 // note durations: 4 = quarter note, 8 = eighth note, etc.:
 int noteDurations[] = {4, 8, 8, 4, 4, 4, 4, 4};
-bool isSound = false; // По-умолчанию звук предупреждения отключен
+bool isSound = true; // По-умолчанию звук предупреждения отключен
+bool isCalibration = false; // Калибровка запущена
 
 #include "display.h"
 #include "beeper.h"
@@ -93,8 +94,17 @@ void setup() {
 
 
   delay(3000);
-
   
+  setupBME280();
+
+  setupMHZ19();
+}
+
+/**
+* Инициализация датчика температуры, влажности и давления
+*/
+void setupBME280()
+{
   // BMP280
   Serial.print(F("TEST - BMP280 sensor: "));
   if (bmp.begin(I2C_BMP280)) {  
@@ -102,7 +112,7 @@ void setup() {
     Serial.println(F("ok"));
   }else{
     Serial.println(F("not found"));
-    
+    // BME280
     Serial.print(F("TEST - BME280 sensor: "));
     if (bme.begin(I2C_BMP280)) {  
       isBME280 = true;  
@@ -111,18 +121,48 @@ void setup() {
       Serial.println(F("not found"));
     }
   }
+}
 
-
-  // CO2
+/**
+* Инициализация CO2 датчика
+*/
+void setupMHZ19()
+{
   mySerial.begin(BAUDRATE);
   myMHZ19.begin(mySerial);
-  myMHZ19.autoCalibration();
+
+  char myVersion[4];
+  myMHZ19.getVersion(myVersion);
+
+  Serial.print("\nFirmware Version: ");
+  for(byte i = 0; i < 4; i++)
+  {
+    Serial.print(myVersion[i]);
+    if(i == 1)
+      Serial.print(".");
+  }
+  Serial.println("");
+
+  Serial.print("Range: ");
+  Serial.println(myMHZ19.getRange());
+  Serial.print("Background CO2: ");
+  Serial.println(myMHZ19.getBackgroundCO2());
+  Serial.print("Temperature Cal: ");
+  Serial.println(myMHZ19.getTempAdjustment());
+  // Отключение автокалибровки
+  myMHZ19.autoCalibration(false);     
+  Serial.print("ABC Status: "); myMHZ19.getABC() ? Serial.println("ON") :  Serial.println("OFF");  // now print it's status
 }
+
 
 void loop() 
 {
-
   onButton(digitalRead(PIN_BUTTON));
+
+  if (timerCalibration != 0 && millis() - timerCalibration >= 7000) {
+    eventStopCalibration();
+    timerCalibration = 0;
+  }
 
   if (millis() - getDataTimer >= 5000)
   {
@@ -133,42 +173,59 @@ void loop()
     displayMode();
 
     if(isSound){
-      if(co2ppm>1000 && co2ppm<1500){
-        tone(PIN_BEEPER, 2000, 500);  
-      }else if(co2ppm>1500 && co2ppm<2000){
-        tone(PIN_BEEPER, 2500);  
-        delay(500);
-        noTone(PIN_BEEPER);
-        delay(200);
-
-        tone(PIN_BEEPER, 2500);  
-        delay(500);
-        noTone(PIN_BEEPER);
-        delay(200);
-
-        tone(PIN_BEEPER, 2500);  
-        delay(500);
-        noTone(PIN_BEEPER);
-
-      }else if(co2ppm>2000 && co2ppm<4999){
-        tone(PIN_BEEPER, 3000);  
-        delay(800);
-        noTone(PIN_BEEPER);
-        delay(200);
-
-        tone(PIN_BEEPER, 3000);  
-        delay(800);
-        noTone(PIN_BEEPER);
-        delay(200);
-
-        tone(PIN_BEEPER, 3000);  
-        delay(800);
-        noTone(PIN_BEEPER); 
-      }else if(co2ppm>=4999){
-        march();
-      }
+      soundIndicateCO2();
     }
   }  
+}
+
+void soundIndicateCO2()
+{
+  if(co2ppm > 1000 && co2ppm < 1500) {
+    tone(PIN_BEEPER, 2000, 500);  
+  }else if(co2ppm > 1500 && co2ppm < 2000) {
+    tone(PIN_BEEPER, 2500);  
+    delay(500);
+    noTone(PIN_BEEPER);
+    delay(200);
+
+    tone(PIN_BEEPER, 2500);  
+    delay(500);
+    noTone(PIN_BEEPER);
+    delay(200);
+
+    tone(PIN_BEEPER, 2500);  
+    delay(500);
+    noTone(PIN_BEEPER);
+
+  }else if(co2ppm > 2000 && co2ppm < 4999){
+    tone(PIN_BEEPER, 3000);  
+    delay(800);
+    noTone(PIN_BEEPER);
+    delay(200);
+
+    tone(PIN_BEEPER, 3000);  
+    delay(800);
+    noTone(PIN_BEEPER);
+    delay(200);
+
+    tone(PIN_BEEPER, 3000);  
+    delay(800);
+    noTone(PIN_BEEPER); 
+  }else if(co2ppm >= 4999){
+    march();
+  }
+}
+
+void soundIndicateCalibrate(int count=3)
+{
+  for(int i=0;i<count;i++){
+    tone(PIN_BEEPER, 4000);  
+    delay(300);
+    noTone(PIN_BEEPER);
+    if(i < count-1){
+      delay(200);
+    }
+  }
 }
 
 void onButton(int status)
@@ -202,35 +259,75 @@ void eventButtonShort()
 {
   digitalWrite(LED_BUILTIN, HIGH);
   mode++;
-  if(mode>1){
-    mode=0;
+  if(mode > MODE_CALIBRATE){
+    mode = MODE_MAIN;
   }
   if(isSound){
     tone(PIN_BEEPER, 5000, 100);
   }
-  displayMode();
-      
+
   Serial.print("TOUCH mode: ");
   Serial.println(mode);
 
   digitalWrite(LED_BUILTIN, LOW);
+
+  displayMode();
 }
 
 // Событие длиного нажтия кнопки
 void eventButtonLong()
 {
-  // if(mode==MODE_WELCOME){
-  //   // march();
-  //   // playMelody();
-  // }
-  tone(PIN_BEEPER, 2000, 1000);  
+  if(mode == MODE_CALIBRATE){
+    eventStartCalibration();
+    return;
+  }
+  if(mode == MODE_ALL){
+    // march();
+    playMelody();
+    return;
+  }
+  eventSoundChange();
+}
+
+/**
+* Событие запуска калибровки датчика CO2
+*/
+void eventStartCalibration()
+{
+    isCalibration = true;
+    soundIndicateCalibrate(3);
+
+    Serial.println(F("Event calibration"));
+    myMHZ19.calibrate();
+    Serial.println(F("Start calibration..."));
+    
+    timerCalibration = millis();
+    displayMode();
+}
+
+/**
+* Событие окончания калибровки
+*/
+void eventStopCalibration()
+{
+  isCalibration = false;
+  mode = MODE_MAIN;
+  displayMode();
+  soundIndicateCalibrate(2);
+}
+
+/**
+* Событие влючения/отключения звука
+*/
+void eventSoundChange()
+{
   isSound=!isSound;
+  tone(PIN_BEEPER, 2000, 1000);  
   if(isSound) {
     Serial.println(F("Sound ON"));
   } else {
     Serial.println(F("Sound OFF"));
   }
-
 }
 
 /**

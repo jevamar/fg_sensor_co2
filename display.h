@@ -109,36 +109,38 @@ void displayAll()
   oled.update();
 }
 
-// Экранс произвольным текстом
-// void displayButton()
-// {
-   
-//   oled.clear();   
+// Экран калибровки
+void displayCalibrate()
+{
+  oled.clear();   
 
-//   oled.home();
-//   //oled.setCursorXY(5, 30);
-//   oled.setScale(1);
-//   oled.autoPrintln(true);
-//   oled.print(F("Hello, Okarin!\r\n"));
-//   oled.setScale(1);
-//   oled.print(F("\r\n       Go to\r\n\r\n"));
-//   oled.setScale(2);
-//   oled.print(F("Steins;\r\nGate"));
-    
-//   oled.update();
-// }
+  oled.home();
+  //oled.setCursorXY(5, 30);
+  oled.setScale(2);
+  // oled.autoPrintln(true);
+  oled.println(F("Calibrate"));
+  
+  oled.setScale(1);
+  if(isCalibration) {
+    oled.println(F("\r\nCalibartion...")); 
+    oled.println(F("\r\nWait 7 seconds")); 
+  } else {
+    oled.println(F("\r\nLong click for start")); 
+  } 
+  oled.update();
+}
 
 void displayMode()
 {
-  if(mode==MODE_MAIN){
+  if(mode == MODE_MAIN){
     display();
   }
-  if(mode==MODE_ALL){
+  if(mode == MODE_ALL){
     displayAll();
   }
-  // if(mode==MODE_WELCOME){
-  //   displayButton();
-  // }
+  if(mode == MODE_CALIBRATE){
+    displayCalibrate();
+  }
 }
 
 #endif
